@@ -1,0 +1,6 @@
+flask_pymongo==2.3.0
+flask_cors==3.0.1
+requests
+python-dotenv==0.21.0
+dnspython==2.2.1
+pymongo[srv]
