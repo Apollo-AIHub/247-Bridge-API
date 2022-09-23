@@ -53,7 +53,8 @@ def input_validation(patinet_data):
 
         if patinet_data.get(key) == '':
             patinet_data[key] = value
-
+            
+    return patinet_data
 
 @app.route('/aicvd', methods=['POST'])
 def get_aicvd():
