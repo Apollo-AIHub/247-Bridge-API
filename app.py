@@ -92,6 +92,13 @@ def get_aicvd():
                 'risk_category': 'Category 1' if heart_risk.get('Risk') == 'Low Risk' else 'Category 2'
             }
             return make_response(jsonify(response), 200)
+            
+        elif aicvd_response.status_code >= 500:
+            response = {
+                'status': 'error',
+                'msg': 'We are experiencing huge load at the movement. Please try again later.'
+            }
+            return make_response(jsonify(response), 500)
 
         else:
             response = {
