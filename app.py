@@ -31,6 +31,7 @@ def insert_data(data, collection_name):
 
 def input_validation(patinet_data):
     dict_of_default_values = {
+        'Id': '247-bridge-{}'.format(str(uuid.uuid4())),
         'Age': 25,
         'Gender': 'Male',
         'BMI': 25,
@@ -91,6 +92,13 @@ def get_aicvd():
                 'risk_category': 'Category 1' if heart_risk.get('Risk') == 'Low Risk' else 'Category 2'
             }
             return make_response(jsonify(response), 200)
+            
+        elif aicvd_response.status_code >= 500:
+            response = {
+                'status': 'error',
+                'msg': 'We are experiencing huge load at the movement. Please try again later.'
+            }
+            return make_response(jsonify(response), 500)
 
         else:
             response = {
