@@ -31,6 +31,7 @@ def insert_data(data, collection_name):
 
 def input_validation(patinet_data):
     dict_of_default_values = {
+        'Id': '247-bridge-{}'.format(str(uuid.uuid4())),
         'Age': 25,
         'Gender': 'Male',
         'BMI': 25,
