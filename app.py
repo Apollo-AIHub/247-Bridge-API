@@ -78,7 +78,35 @@ def get_aicvd():
 
             predicted_data = patient_risk_data.get('Data')[0].get('Prediction')
             heart_risk = predicted_data.get('HeartRisk')
+            medical_protocol = predicted_data.get('MedicalProtocol')
 
+            diagnostics_and_imaging_recommended = ', '.join(x for x in medical_protocol.get('DiagnosticsAndImagingRecommended') if medical_protocol.get('DiagnosticsAndImagingRecommended')[x] == 'Yes')
+
+            lab_investigation_recommended = ', '.join(x for x in medical_protocol.get('LabInvestigationRecommended') if medical_protocol.get('LabInvestigationRecommended')[x] == 'Yes')
+
+            filter_patient_risk_data = {
+
+                'risk_status': heart_risk.get('Risk'),
+
+                'risk_score': heart_risk.get('Score'),
+
+                'acceptable_score': heart_risk.get('Acceptable'),
+
+                'top_risks': heart_risk.get('TopRiskContributors'),
+
+                'diagnostics_and_imaging_recommended': diagnostics_and_imaging_recommended,
+
+                'lab_investigation_recommended': lab_investigation_recommended,
+
+                'medication': medical_protocol.get('Medication').get('GeneralTreatment'),
+
+                'referral': '{} Referral({})'.format(medical_protocol.get('Referral').get('Department'), medical_protocol.get('Referral').get('Urgency')),
+
+                'general_advice': medical_protocol.get('Management').get('GeneralAdvice'),
+
+                'repeat_visit': medical_protocol.get('Management').get('RepeatVisit').get('Comments')
+
+            }
             patient_record_storage_obj = {
                 'record_id': str(uuid.uuid4()),
                 'patient_data': patient_data,
@@ -89,7 +117,8 @@ def get_aicvd():
 
             response = {
                 'status': 'success',
-                'risk_category': 'Category 1' if heart_risk.get('Risk') == 'Low Risk' else 'Category 2'
+                'risk_category': 'Category 1' if heart_risk.get('Risk') == 'Low Risk' else 'Category 2',
+                'response': filter_patient_risk_data
             }
             return make_response(jsonify(response), 200)
             
