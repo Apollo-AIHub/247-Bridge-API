@@ -31,21 +31,21 @@ def insert_data(data, collection_name):
 
 def input_validation(patinet_data):
     dict_of_default_values = {
-        'Id': '247-bridge-{}'.format(str(uuid.uuid4())),
-        'Age': 25,
-        'Gender': 'Male',
-        'BMI': 25,
-        'BloodPressureDiastolic': 80,
-        'BloodPressureSystolic': 120,
-        'HeartRatePerMinute': 90,
-        'PhysicalActivity': 'Active',
-        'Smoke': 'No',
-        'Tobacco': 'No',
-        'Diet': 'Non-Veg',
-        'Alcohol': 'No',
-        'DiabetesMellitus': 'No',
-        'Hypertension': 'No',
-        'Dyslipidaemia': 'No'
+        'id': '247-bridge-{}'.format(str(uuid.uuid4())),
+        'age': 25,
+        'gender': 'Male',
+        'bmi': 25,
+        'systolicBp': 80,
+        'diastolicBp': 120,
+        'heartRate': 90,
+        'phsicalActivity': 'Active',
+        'smoke': 'No',
+        'tobacco': 'No',
+        'diet': 'Mix',
+        'alcohol': 'No',
+        'diabetes': 'No',
+        'hypertension': 'No',
+        'dyslipidaemia': 'No'
     }
 
     for key, value in dict_of_default_values.items():
@@ -57,11 +57,32 @@ def input_validation(patinet_data):
             
     return patinet_data
 
+def aicvd_payload(patient_data):
+    return {
+        'Id': patient_data['id'],
+        'Age': patient_data['age'],
+        'Gender': patient_data['gender'],
+        'BMI': patient_data['bmi'],
+        'BloodPressureDiastolic': patient_data['systolicBp'],
+        'BloodPressureSystolic': patient_data['diastolicBp'],
+        'HeartRatePerMinute': patient_data['heartRate'],
+        'PhysicalActivity': patient_data['phsicalActivity'],
+        'Smoke': patient_data['smoke'],
+        'Tobacco': patient_data['tobacco'],
+        'Diet': patient_data['diet'],
+        'Alcohol': patient_data['alcohol'],
+        'DiabetesMellitus': patient_data['diabetes'],
+        'Hypertension': patient_data['hypertension'],
+        'Dyslipidaemia': patient_data['dyslipidaemia'],
+    }
+
 @app.route('/aicvd', methods=['POST'])
 def get_aicvd():
     try:
         patient_data = request.json
-        patient_data = input_validation(patient_data)
+        adjusted_patient_data = input_validation(patient_data)
+
+        risk_score_payload = aicvd_payload(adjusted_patient_data)
 
         headers = {
         'Content-Type': 'application/json',
@@ -70,7 +91,7 @@ def get_aicvd():
         aicvd_response = requests.post(
             AICVD_URL, 
             headers=headers, 
-            data=json.dumps(patient_data)
+            data=json.dumps(risk_score_payload)
         )
 
         if aicvd_response.status_code == 201:
@@ -79,33 +100,21 @@ def get_aicvd():
             predicted_data = patient_risk_data.get('Data')[0].get('Prediction')
             heart_risk = predicted_data.get('HeartRisk')
             medical_protocol = predicted_data.get('MedicalProtocol')
-
             diagnostics_and_imaging_recommended = ', '.join(x for x in medical_protocol.get('DiagnosticsAndImagingRecommended') if medical_protocol.get('DiagnosticsAndImagingRecommended')[x] == 'Yes')
-
             lab_investigation_recommended = ', '.join(x for x in medical_protocol.get('LabInvestigationRecommended') if medical_protocol.get('LabInvestigationRecommended')[x] == 'Yes')
 
+
             filter_patient_risk_data = {
-
                 'risk_status': heart_risk.get('Risk'),
-
                 'risk_score': heart_risk.get('Score'),
-
                 'acceptable_score': heart_risk.get('Acceptable'),
-
                 'top_risks': heart_risk.get('TopRiskContributors'),
-
                 'diagnostics_and_imaging_recommended': diagnostics_and_imaging_recommended,
-
                 'lab_investigation_recommended': lab_investigation_recommended,
-
                 'medication': medical_protocol.get('Medication').get('GeneralTreatment'),
-
                 'referral': '{} Referral({})'.format(medical_protocol.get('Referral').get('Department'), medical_protocol.get('Referral').get('Urgency')),
-
                 'general_advice': medical_protocol.get('Management').get('GeneralAdvice'),
-
                 'repeat_visit': medical_protocol.get('Management').get('RepeatVisit').get('Comments')
-
             }
             patient_record_storage_obj = {
                 'record_id': str(uuid.uuid4()),
@@ -121,7 +130,7 @@ def get_aicvd():
                 'response': filter_patient_risk_data
             }
             return make_response(jsonify(response), 200)
-            
+
         elif aicvd_response.status_code >= 500:
             response = {
                 'status': 'error',
