@@ -150,6 +150,7 @@ def get_aicvd():
                 'riskScore': filter_patient_risk_data.get('risk_score'),
                 'acceptableScore': filter_patient_risk_data.get('acceptable_score'),
                 'reportLink': '{}?recordId={}&token={}'.format(REPORT_URL, patient_record_storage_obj.get('record_id'), patient_report_access_token)
+
             }
 
             print(apollo247_data)
