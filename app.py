@@ -13,6 +13,7 @@ PORT = os.environ.get('PORT')
 AICVD_URL = os.environ.get('AICVD_URL')
 AICVD_OAUTH_TOKEN = os.environ.get('AICVD_OAUTH_TOKEN')
 APOLLO247_URL = os.environ.get('APOLLO247_URL')
+APOLLO247_TOKEN = os.environ.get('APOLLO247_TOKEN')
 REPORT_URL = os.environ.get('REPORT_URL')
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017/bridge_data")
 
@@ -140,7 +141,7 @@ def get_aicvd():
             # headers and api call for data sending to the apollo247
             apollo247_headers = {
                 'Content-Type': 'application/json',
-                'xauthtoken': 'UATAPOLLOCRHH-TJA9NVOXOHVDYGB3W5LW'
+                'xauthtoken': APOLLO247_TOKEN
             }
             apollo247_data = {
                 'hashId': patient_data.get('id'),
