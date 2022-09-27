@@ -14,6 +14,7 @@ AICVD_URL = os.environ.get('AICVD_URL')
 AICVD_OAUTH_TOKEN = os.environ.get('AICVD_OAUTH_TOKEN')
 APOLLO247_URL = os.environ.get('APOLLO247_URL')
 APOLLO247_TOKEN = os.environ.get('APOLLO247_TOKEN')
+DB_COLLECTION_NAME = os.environ.get('DB_COLLECTION_NAME')
 REPORT_URL = os.environ.get('REPORT_URL')
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017/bridge_data")
 
@@ -172,7 +173,7 @@ def get_aicvd():
             print(apollo247_response.content)
             
             # storing the complect data from our db
-            insert_data(patient_record_storage_obj, 'aicvd')
+            insert_data(patient_record_storage_obj, DB_COLLECTION_NAME)
 
             # final resopnse
             response = {
@@ -209,7 +210,7 @@ def aicvd_report():
     try:
         record_id = request.json.get('record_id')
 
-        complete_patient_data = get_data({'record_id': record_id}, 'acivd')
+        complete_patient_data = get_data({'record_id': record_id}, DB_COLLECTION_NAME)
 
         patient_info = complete_patient_data.get('patient_data')
         patient_risk_info = complete_patient_data.get('patient_risk_data')
