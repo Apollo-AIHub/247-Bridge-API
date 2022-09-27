@@ -4,3 +4,4 @@ requests
 python-dotenv==0.21.0
 dnspython==2.2.1
 pymongo[srv]
+flask_jwt_extended==4.4.4
