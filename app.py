@@ -38,6 +38,16 @@ def insert_data(data, collection_name):
         print('-------------------')
         return False, str(e)
 
+def get_data(data, collection_name):
+    try:
+        print(data)
+        return db[collection_name].find_one(data)
+    except Exception as e:
+        print('---------- Error in find data method ---------')
+        print(e)
+        print('-------------------')
+        return e
+
 def input_validation(patinet_data):
     dict_of_default_values = {
         'age': 25,
@@ -194,6 +204,40 @@ def get_aicvd():
         }
         return make_response(jsonify(response), 400)
         
+@app.route('/aicvd-report', methods=['POST'])
+@jwt_required()
+def aicvd_report():
+    try:
+        record_id = request.json.get('record_id')
+
+        complete_patient_data = get_data({'record_id': record_id}, 'acivd')
+
+        patient_info = complete_patient_data.get('patient_data')
+        patient_risk_info = complete_patient_data.get('patient_risk_data')
+
+        predicted_data = patient_risk_info.get('Data')[0].get('Prediction')
+        heart_risk = predicted_data.get('HeartRisk')
+
+        filter_patient_risk_data = {
+            'risk_status': heart_risk.get('Risk'),
+            'risk_score': heart_risk.get('Score'),
+            'acceptable_score': heart_risk.get('Acceptable'),
+            'top_risks': heart_risk.get('TopRiskContributors')
+        }
+
+        response = {
+            'patient_info': patient_info,
+            'patient_risk_data': filter_patient_risk_data
+        }
+        return make_response(jsonify(response), 200)
+
+    except Exception as e:
+        response = {
+            'status': 'error',
+            'msg': e
+        }
+        return make_response(jsonify(response), 400)
+
 
 
 if __name__ == '__main__':
