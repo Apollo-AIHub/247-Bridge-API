@@ -9,6 +9,9 @@ import uuid
 import time
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 PORT = os.environ.get('PORT')
 AICVD_URL = os.environ.get('AICVD_URL')
 AICVD_OAUTH_TOKEN = os.environ.get('AICVD_OAUTH_TOKEN')
@@ -17,6 +20,8 @@ APOLLO247_TOKEN = os.environ.get('APOLLO247_TOKEN')
 DB_COLLECTION_NAME = os.environ.get('DB_COLLECTION_NAME')
 REPORT_URL = os.environ.get('REPORT_URL')
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017/bridge_data")
+VALIDATE_HASHKEY_TOKEN = os.environ.get("VALIDATE_HASHKEY_TOKEN", "")
+APOLLO_VALIDATE_HASHKEY_URL = os.environ.get("APOLLO_VALIDATE_HASHKEY_URL", "")
 
 app = Flask(__name__)
 
@@ -95,10 +100,86 @@ def aicvd_payload(patient_data):
         'Dyslipidaemia': patient_data['dyslipidaemia']
     }
 
+def validate_id(hashid):
+    headers = {
+        'Content-Type': 'application/json',
+        'xauthtoken': VALIDATE_HASHKEY_TOKEN,
+        'hashkey': hashid
+    }
+    print(headers, APOLLO_VALIDATE_HASHKEY_URL)
+    hashid_validity_response = requests.post(
+        APOLLO_VALIDATE_HASHKEY_URL, 
+        headers=headers
+    )
+    resp_token_validation = {"status": False, "token": ""}
+    hashid_validity_response = json.loads(hashid_validity_response.content)
+    if hashid_validity_response.get("token", "") and hashid_validity_response.get("message", "") == "Token generated successfully":
+        resp_token_validation["status"] = True
+        resp_token_validation["token"]= hashid_validity_response.get("token")
+    return resp_token_validation
+
+def send_data_askapollo(patient_data, patient_record_storage_obj, filter_patient_risk_data, patient_report_access_token, token):
+    # headers and api call for data sending to the apollo247
+    apollo247_headers = {
+        'Content-Type': 'application/json',
+        'xauthtoken': APOLLO247_TOKEN,
+        "Authorization": "Bearer " + token
+    }
+    apollo247_data = {
+        'hashId': patient_data.get('id'),
+        'recordId': patient_record_storage_obj.get('record_id'),
+        'riskCategory': filter_patient_risk_data.get('risk_status'),
+        'riskScore': filter_patient_risk_data.get('risk_score'),
+        'acceptableScore': filter_patient_risk_data.get('acceptable_score'),
+        'reportLink': '{}?recordId={}&token={}'.format(REPORT_URL, patient_record_storage_obj.get('record_id'), patient_report_access_token)
+
+    }
+
+    print(apollo247_data)
+    try:
+        apollo247_response = requests.post(
+            APOLLO247_URL,
+            headers=apollo247_headers,
+            data=json.dumps(apollo247_data)
+        )
+        print(apollo247_response.content)
+        apollo247_response = json.loads(apollo247_response.content)
+    except:
+        print("not able to send the record")
+
+    try:
+        if apollo247_response:
+            insert_data(apollo247_response, "askapollo-response")
+    except:
+        print("not able to save the record")
+    return apollo247_response
+
 @app.route('/aicvd', methods=['POST'])
 def get_aicvd():
     try:
         patient_data = request.json
+
+        ## validate the hashid
+        # get the hashid
+        hash_id = patient_data.get("hashid","")
+        if hash_id:
+            hash_id_token_response = validate_id(hash_id)
+            print(hash_id_token_response)
+            if not hash_id_token_response.get("status", ""):
+                response = {
+                'status': 'not authenticated',
+                'msg': 'We noticed that you are not authenticated.Please go to https://askapollo.com/healthy-heart'
+                }
+                return make_response(jsonify(response), 200)
+            else:
+                hash_id_token = hash_id_token_response.get("token","")
+        else:
+            response = {
+                'status': 'not authenticated',
+                'msg': 'We noticed that you are not authenticated.Please go to https://askapollo.com/healthy-heart'
+            }
+            return make_response(jsonify(response), 200)
+
 
         # here we validate the patient data means if patient is not enter the madatory field then we assigned is default value.
         adjusted_patient_data = input_validation(patient_data)
@@ -131,7 +212,7 @@ def get_aicvd():
                 identity=patient_risk_data.get('id'),
                 expires_delta=timedelta(days=30)
             )
-            
+            print(patient_report_access_token)
             # this obj contains the complect data about use including with timestamp for to in DB
             patient_record_storage_obj = {
                 'patient_data': patient_data,
@@ -149,32 +230,12 @@ def get_aicvd():
                 'top_risks': heart_risk.get('TopRiskContributors')
             }
             
-            # headers and api call for data sending to the apollo247
-            apollo247_headers = {
-                'Content-Type': 'application/json',
-                'xauthtoken': APOLLO247_TOKEN
-            }
-            apollo247_data = {
-                'hashId': patient_data.get('id'),
-                'recordId': patient_record_storage_obj.get('record_id'),
-                'riskCategory': filter_patient_risk_data.get('risk_status'),
-                'riskScore': filter_patient_risk_data.get('risk_score'),
-                'acceptableScore': filter_patient_risk_data.get('acceptable_score'),
-                'reportLink': '{}?recordId={}&token={}'.format(REPORT_URL, patient_record_storage_obj.get('record_id'), patient_report_access_token)
 
-            }
-
-            print(apollo247_data)
-
-            apollo247_response = requests.post(
-                APOLLO247_URL,
-                headers=apollo247_headers,
-                data=json.dumps(apollo247_data)
-            )
-            print(apollo247_response.content)
-            
             # storing the complect data from our db
             insert_data(patient_record_storage_obj, DB_COLLECTION_NAME)
+            
+            # @send data to askapollo for crm integration
+            send_data_askapollo(patient_data, patient_record_storage_obj, filter_patient_risk_data, patient_report_access_token, hash_id_token)
 
             # final resopnse
             response = {
