@@ -22,7 +22,7 @@ REPORT_URL = os.environ.get('REPORT_URL')
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017/bridge_data")
 VALIDATE_HASHKEY_TOKEN = os.environ.get("VALIDATE_HASHKEY_TOKEN", "")
 APOLLO_VALIDATE_HASHKEY_URL = os.environ.get("APOLLO_VALIDATE_HASHKEY_URL", "")
-
+COUPON = os.environ.get("COUPON", "")
 app = Flask(__name__)
 
 app.config["MONGO_URI"] = MONGODB_URL 
@@ -83,7 +83,7 @@ def input_validation(patinet_data):
 
 def aicvd_payload(patient_data):
     return {
-        'Id': patient_data['id'],
+        'Id': patient_data['hashid'],
         'Age': patient_data['age'],
         'Gender': patient_data['gender'],
         'BMI': patient_data['bmi'],
@@ -126,7 +126,7 @@ def send_data_askapollo(patient_data, patient_record_storage_obj, filter_patient
         "Authorization": "Bearer " + token
     }
     apollo247_data = {
-        'hashId': patient_data.get('id'),
+        'hashId': patient_data.get('hashid'),
         'recordId': patient_record_storage_obj.get('record_id'),
         'riskCategory': filter_patient_risk_data.get('risk_status'),
         'riskScore': filter_patient_risk_data.get('risk_score'),
@@ -149,6 +149,7 @@ def send_data_askapollo(patient_data, patient_record_storage_obj, filter_patient
 
     try:
         if apollo247_response:
+            apollo247_response["record_id"] = patient_record_storage_obj.get("record_id", "")
             insert_data(apollo247_response, "askapollo-response")
     except:
         print("not able to save the record")
@@ -181,6 +182,9 @@ def get_aicvd():
             return make_response(jsonify(response), 200)
 
 
+        # record id for storing unique records
+        record_id = str(uuid.uuid4())
+
         # here we validate the patient data means if patient is not enter the madatory field then we assigned is default value.
         adjusted_patient_data = input_validation(patient_data)
 
@@ -206,21 +210,24 @@ def get_aicvd():
             predicted_data = patient_risk_data.get('Data')[0].get('Prediction')
             heart_risk = predicted_data.get('HeartRisk')
 
+
             # token for accessing the report for front end
             # this token patient will get from the apollo 247 end 
             patient_report_access_token = create_access_token (
-                identity=patient_risk_data.get('id'),
+                identity=record_id,
                 expires_delta=timedelta(days=30)
             )
-            print(patient_report_access_token)
+
             # this obj contains the complect data about use including with timestamp for to in DB
             patient_record_storage_obj = {
                 'patient_data': patient_data,
                 'patient_risk_data': patient_risk_data,
-                'record_id': str(uuid.uuid4()),
+                'record_id': record_id,
                 'report_access_token': patient_report_access_token,
                 'time_stamp': time.time()
             }
+
+            print(patient_report_access_token)
 
             # this obj contains the required info for front end to patient can see
             filter_patient_risk_data = {
@@ -229,7 +236,10 @@ def get_aicvd():
                 'acceptable_score': heart_risk.get('Acceptable'),
                 'top_risks': heart_risk.get('TopRiskContributors')
             }
-            
+
+            ## adding coupon logic only to Moderate and High Risk
+            if filter_patient_risk_data.get("risk_status","Low Risk").lower() == "moderate risk" or filter_patient_risk_data.get("risk_status","Low Risk").lower() == "high risk": 
+                filter_patient_risk_data["coupon"] = COUPON
 
             # storing the complect data from our db
             insert_data(patient_record_storage_obj, DB_COLLECTION_NAME)
