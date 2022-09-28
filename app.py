@@ -281,7 +281,18 @@ def get_aicvd():
 @jwt_required()
 def aicvd_report():
     try:
-        record_id = request.json.get('recordId')
+        # record_id = request.json.get('recordId')
+        # if not record_id:
+        #     record_id = request.json.get('record_id')
+
+        try:
+            claims = get_jwt()
+            print(claims)
+            record_id = claims.get("sub")
+        except:
+            record_id = request.json.get('recordId')
+            if not record_id:
+                record_id = request.json.get('record_id')
 
         complete_patient_data = get_data({'record_id': record_id}, DB_COLLECTION_NAME)
 
