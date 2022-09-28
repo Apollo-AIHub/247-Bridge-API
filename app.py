@@ -231,6 +231,7 @@ def get_aicvd():
 
             # this obj contains the required info for front end to patient can see
             filter_patient_risk_data = {
+                "record_id": record_id,
                 'risk_status': heart_risk.get('Risk'),
                 'risk_score': heart_risk.get('Score'),
                 'acceptable_score': heart_risk.get('Acceptable'),
