@@ -149,6 +149,7 @@ def send_data_askapollo(patient_data, patient_record_storage_obj, filter_patient
 
     try:
         if apollo247_response:
+            apollo247_response["record_id"] = patient_record_storage_obj.get("record_id", "")
             insert_data(apollo247_response, "askapollo-response")
     except:
         print("not able to save the record")
