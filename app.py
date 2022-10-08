@@ -71,7 +71,12 @@ def aicvd_payload(patient_data):
         'Alcohol': patient_data['alcohol'],
         'DiabetesMellitus': patient_data['diabetes'],
         'Hypertension': patient_data['hypertension'],
-        'Dyslipidaemia': patient_data['dyslipidaemia']
+        'Dyslipidaemia': patient_data['dyslipidaemia'],
+        'HeartRelatedSymptom': patient_data['symptoms'],
+        'RateofRespirationPerMinute': patient_data['respirationRate'],
+        'FamilyHistoryofHeartDisease': patient_data['familyHistory'],
+        'PrevHeartDisease': patient_data['heartDisease'],
+        'Rhythm': 'Regularly Regular'
     }
 
 def validate_id(hashid):
