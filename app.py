@@ -54,32 +54,6 @@ def get_data(data, collection_name):
         print('-------------------')
         return e
 
-def input_validation(patinet_data):
-    dict_of_default_values = {
-        'age': 25,
-        'gender': 'Male',
-        'bmi': 25,
-        'systolicBp': 80,
-        'diastolicBp': 120,
-        'heartRate': 90,
-        'phsicalActivity': 'Active',
-        'smoke': 'No',
-        'tobacco': 'No',
-        'diet': 'Mix',
-        'alcohol': 'No',
-        'diabetes': 'No',
-        'hypertension': 'No',
-        'dyslipidaemia': 'No'
-    }
-
-    for key, value in dict_of_default_values.items():
-
-        patinet_data[key] = patinet_data.get(key, value)
-
-        if patinet_data.get(key) == '':
-            patinet_data[key] = value
-            
-    return patinet_data
 
 def aicvd_payload(patient_data):
     return {
@@ -186,12 +160,10 @@ def get_aicvd():
         record_id = str(uuid.uuid4())
 
         # here we validate the patient data means if patient is not enter the madatory field then we assigned is default value.
-        adjusted_patient_data = input_validation(patient_data)
-
         # here we converted the input obj to required key and value type for aicvd api
-        risk_score_payload = aicvd_payload(adjusted_patient_data)
+        risk_score_payload = aicvd_payload(patient_data)
 
-        print(json.dumps(risk_score_payload))
+        print(json.dumps(risk_score_payload, indent=4))
 
         # headers and api request for aicvd
         headers = {
