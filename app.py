@@ -211,6 +211,7 @@ def get_aicvd():
                 "record_id": record_id,
                 'risk_status': heart_risk.get('Risk'),
                 'risk_score': heart_risk.get('Score'),
+                'risk_ratio': heart_risk.get('Ratio'),
                 'acceptable_score': heart_risk.get('Acceptable'),
                 'top_risks': heart_risk.get('TopRiskContributors')
             }
@@ -282,6 +283,7 @@ def aicvd_report():
         filter_patient_risk_data = {
             'risk_status': heart_risk.get('Risk'),
             'risk_score': heart_risk.get('Score'),
+            'risk_ratio': heart_risk.get('Ratio'),
             'acceptable_score': heart_risk.get('Acceptable'),
             'top_risks': heart_risk.get('TopRiskContributors')
         }
